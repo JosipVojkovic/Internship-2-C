@@ -1,5 +1,4 @@
 ﻿using System.Globalization;
-using System.Reflection.Metadata;
 
 var users = new Dictionary<int, (string, string, string)>() {
     { 1, ("Josip", "Josipovic", "08.11.1998")},
@@ -44,16 +43,17 @@ var usersAccounts = new Dictionary<int, Dictionary<string, decimal>>() {
 
 var format = "dd.MM.yyyy";
 
-void createUser(bool wrongEntry)
+void wrongEntryy()
 {
     Console.Clear();
+    Console.WriteLine("Pogresan unos. Pokusajte ponovno.");
+    Console.WriteLine();
+}
 
-    if (wrongEntry)
-    {
-        Console.WriteLine("Pogresan unos. Pokusajte ponovno.");
-        Console.WriteLine();
-    }
-
+// Kreiranje korisnika
+void createUser()
+{
+    
     Console.Write("Unesite ime novog korisnika: ");
     var name = Console.ReadLine();
     Console.Write("Unesite prezime novog korisnika: ");
@@ -63,14 +63,18 @@ void createUser(bool wrongEntry)
 
     if(!DateTime.TryParseExact(birthDate, format, CultureInfo.InvariantCulture, DateTimeStyles.None,out _))
     {
-        createUser(true);
+        wrongEntryy();
+        createUser();
+        return;
     }
 
     foreach (var user in users)
     {
         if(user.Value.Item1 == name && user.Value.Item2 == lastname)
         {
-            createUser(true);
+            wrongEntryy();
+            createUser();
+            return;
         }
     }
     users.Add(users.Count + 1, (name?? "", lastname?? "", birthDate?? ""));
@@ -85,9 +89,7 @@ void createUser(bool wrongEntry)
     var decision = Console.ReadLine();
 
     while (decision != "1" && decision != "0") {
-        Console.Clear();
-        Console.WriteLine("Pogresan unos. Pokusajte ponovno.");
-        Console.WriteLine();
+        wrongEntryy();
         Console.WriteLine("1 - Kreiraj novog korisnika");
         Console.WriteLine("0 - Pocetni meni");
         Console.WriteLine();
@@ -96,23 +98,19 @@ void createUser(bool wrongEntry)
     }
     if (decision == "1")
     {
-        createUser(false);
+        Console.Clear();
+        createUser();
     }
     else if (decision == "0")
     {
-        startingMenu(false);
+        Console.Clear();
+        startingMenu();
     }
 }
 
-void deleteUser(bool wrongEntry) {
-    Console.Clear();
-
-    if (wrongEntry)
-    {
-        Console.WriteLine("Pogresan unos. Pokusajte ponovno.");
-        Console.WriteLine();
-    }
-
+// Brisanje korisnika meni
+void deleteUser() {
+    
     Console.WriteLine("1 - Po id-u");
     Console.WriteLine("2 - Po imenu i prezimenu");
     Console.WriteLine("0 - Pocetni meni");
@@ -123,30 +121,27 @@ void deleteUser(bool wrongEntry) {
     switch (decision)
     {
         case "1":
-            deleteById(false);
-            break;
+            Console.Clear();
+            deleteById();
+            return;
         case "2":
-            deleteByName(false);
-            break;
+            Console.Clear();
+            deleteByName();
+            return;
         case "0":
-            startingMenu(false);
+            Console.Clear();
+            startingMenu();
             return;
         default:
-            deleteUser(true);
-            break;
+            wrongEntryy();
+            deleteUser();
+            return;
     }
 }
 
-void deleteById(bool wrongEntry)
+// Brisanje korisnika prema id-u
+void deleteById()
 {
-    Console.Clear();
-
-    if (wrongEntry)
-    {
-        Console.WriteLine("Pogresan unos. Pokusajte ponovno.");
-        Console.WriteLine();
-    }
-
     Console.Write("Unesite id korisnika kojeg zelite obrisati: ");
     var id = Console.ReadLine();
 
@@ -163,34 +158,36 @@ void deleteById(bool wrongEntry)
             Console.WriteLine();
             Console.Write("Odaberite radnju: ");
             var decision = Console.ReadLine();
+            while (decision != "0" && decision != "1" )
+            {
+                wrongEntryy();
+                Console.WriteLine("1 - Obrisite novog korisnika");
+                Console.WriteLine("0 - Pocetni meni");
+                Console.WriteLine();
+                Console.Write("Odaberite radnju: ");
+                decision = Console.ReadLine();
+            }
 
             switch (decision)
             {
                 case "1":
-                    deleteById(false);
-                    break;
-                case "0":
-                    startingMenu(false);
+                    Console.Clear();
+                    deleteById();
                     return;
-                default:
-                    deleteById(true);
-                    break;
+                case "0":
+                    Console.Clear();
+                    startingMenu();
+                    return;
             }
         }
      }
-    deleteById(true);
+    wrongEntryy();
+    deleteById();
 }
 
-void deleteByName(bool wrongEntry)
+// Brisanje korisnika prema imenu i prezimenu
+void deleteByName()
 {
-    Console.Clear();
-
-    if (wrongEntry)
-    {
-        Console.WriteLine("Pogresan unos. Pokusajte ponovno.");
-        Console.WriteLine();
-    }
-
     Console.Write("Unesite ime korisnika kojeg zelite obrisati: ");
     var name = Console.ReadLine();
     Console.Write("Unesite prezime korisnika kojeg zelite obrisati: ");
@@ -210,33 +207,36 @@ void deleteByName(bool wrongEntry)
             Console.Write("Odaberite radnju: ");
             var decision = Console.ReadLine();
 
+            while (decision != "0" && decision != "1")
+            {
+                wrongEntryy();
+                Console.WriteLine("1 - Obrisite novog korisnika");
+                Console.WriteLine("0 - Pocetni meni");
+                Console.WriteLine();
+                Console.Write("Odaberite radnju: ");
+                decision = Console.ReadLine();
+            }
+
             switch (decision)
             {
                 case "1":
-                    deleteByName(false);
-                    break;
-                case "0":
-                    startingMenu(false);
+                    Console.Clear();
+                    deleteByName();
                     return;
-                default:
-                    deleteByName(true);
-                    break;
+                case "0":
+                    Console.Clear();
+                    startingMenu();
+                    return;
             }
         }
     }
-    deleteByName(true); 
+    wrongEntryy();
+    deleteByName(); 
 }
 
-void updateUser(bool wrongEntry)
+// Uredivanje korisnika
+void updateUser()
 {
-    Console.Clear();
-
-    if (wrongEntry)
-    {
-        Console.WriteLine("Pogresan unos. Pokusajte ponovno.");
-        Console.WriteLine();
-    }
-
     Console.Write("Unesite id korisnika cije podatke zelite urediti: ");
     var id = Console.ReadLine();
     Console.Clear();
@@ -257,7 +257,8 @@ void updateUser(bool wrongEntry)
 
             if (!DateTime.TryParseExact(birthDate, format, CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
             {
-                updateUser(true);
+                wrongEntryy();
+                updateUser();
             }
             else 
             {
@@ -267,41 +268,42 @@ void updateUser(bool wrongEntry)
             Console.Clear();
             Console.WriteLine($"Korisnik id-{id} uspjesno ureden.");
             Console.WriteLine();
-            var wrongChoice = true;
+            Console.WriteLine("1 - Uredite novog korisnika");
+            Console.WriteLine("0 - Pocetni meni");
+            Console.WriteLine();
+            Console.Write("Odaberite radnju: ");
+            var decision = Console.ReadLine();
 
-            while (wrongChoice)
+            while (decision != "0" && decision != "1")
             {
+                wrongEntryy();
                 Console.WriteLine("1 - Uredite novog korisnika");
                 Console.WriteLine("0 - Pocetni meni");
                 Console.WriteLine();
                 Console.Write("Odaberite radnju: ");
-                var decision = Console.ReadLine();
-
-                switch (decision)
-                {
-                    case "1":
-                        wrongChoice = false;
-                        updateUser(false);
-                        break;
-                    case "0":
-                        wrongChoice = false;
-                        startingMenu(false);
-                        return;
-                    default:
-                        wrongChoice = true;
-                        Console.Clear();
-                        Console.WriteLine("Pogresan unos. Pokusajte ponovno.");
-                        Console.WriteLine();
-                        break;
-                }
+                decision = Console.ReadLine();
             }
+
+            switch (decision)
+            {
+                case "1":
+                    Console.Clear();
+                    updateUser();
+                    return;
+                case "0":
+                    Console.Clear();
+                    startingMenu();
+                    return;
+            }
+            
         }
     }
 
-    updateUser(true);
+    updateUser();
 }
 
-void reviewUsers()
+// Pregled korisnika meni
+void reviewUsersAlphabetically()
 {
     Console.Clear();
     var goBack = false;
@@ -311,7 +313,7 @@ void reviewUsers()
         Console.WriteLine("0 - Pocetni meni");
         Console.WriteLine();
 
-        foreach (var user in users)
+        foreach (var user in users.OrderBy(pair => pair.Value.Item2))
         {
             Console.WriteLine($"{user.Key} - {user.Value.Item1} - {user.Value.Item2} - {user.Value.Item3}");
         }
@@ -332,21 +334,41 @@ void reviewUsers()
         }
     }
 
-    startingMenu(false);
-
+    Console.Clear();
+    startingMenu();
+    return;
 }
 
-void usersMenu(bool wrongEntry)
+void reviewUsers()
 {
-    Console.Clear();
+    Console.WriteLine("1 - Ispis korisnika abecedno po prezimenu");
+    Console.WriteLine("2 - Ispis korisnika koji imaju vise od 30 godina");
+    Console.WriteLine("3 - Korisnici sa racunom u minusu");
+    Console.WriteLine("0 - Pocetni meni");
+    Console.WriteLine();
+    Console.Write("Odaberite radnju: ");
+    var decision = Console.ReadLine();
 
-    if (wrongEntry)
+    switch (decision)
     {
-        Console.WriteLine("Pogresan unos. Pokusajte ponovno.");
-        Console.WriteLine();
+        case "1":
+            Console.Clear();
+            reviewUsersAlphabetically();
+            return;
+        case "0":
+            Console.Clear();
+            startingMenu();
+            return;
+        default:
+            wrongEntryy();
+            reviewUsers();
+            return;
     }
+}
 
-
+// Korisnici meni
+void usersMenu()
+{
     Console.WriteLine("1 - Unos novog korisnika");
     Console.WriteLine("2 - Brisanje korisnika");
     Console.WriteLine("3 - Uredivanje korisnika");
@@ -360,36 +382,35 @@ void usersMenu(bool wrongEntry)
     switch (decision)
     {
         case "1":
-            createUser(false);
-            break;
+            Console.Clear();
+            createUser();
+            return;
         case "2":
-            deleteUser(false);
-            break;
+            Console.Clear();
+            deleteUser();
+            return;
         case "3":
-            updateUser(false);
-            break;
+            Console.Clear();
+            updateUser();
+            return;
         case "4":
+            Console.Clear();
             reviewUsers();
-            break;
+            return;
         case "0":
-            startingMenu(false); // natrag na pocetni meni
-            break;
+            Console.Clear();
+            startingMenu(); // natrag na pocetni meni
+            return;
         default:
-            usersMenu(true);
-            break;
+            wrongEntryy();
+            usersMenu();
+            return;
     }
 }
 
-void startingMenu(bool wrongEntry)
+// Pocetni meni
+void startingMenu()
 {
-    Console.Clear();
-
-    if (wrongEntry)
-    {
-        Console.WriteLine("Pogresan unos. Pokusajte ponovno.");
-        Console.WriteLine();
-    }
-
     Console.WriteLine("1 - Korisnici");
     Console.WriteLine("2 - Racuni");
     Console.WriteLine("3 - Izlaz iz aplikacije");
@@ -401,19 +422,21 @@ void startingMenu(bool wrongEntry)
     switch (decision)
     {
         case "1":
-            usersMenu(false);
-            break;
+            Console.Clear();
+            usersMenu();
+            return;
         case "2":
             // funkcija account
             break;
         case "3":
             return;
         default:
-            startingMenu(true);
-            break;
+            wrongEntryy();
+            startingMenu();
+            return;
     }
 }
 
-startingMenu(false);
+startingMenu();
 
 
