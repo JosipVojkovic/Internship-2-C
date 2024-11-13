@@ -77,7 +77,13 @@ void createUser()
             return;
         }
     }
-    users.Add(users.Count + 1, (name?? "", lastname?? "", birthDate?? ""));
+    users.Add(users.Last().Key + 1, (name?? "", lastname?? "", birthDate?? ""));
+    usersAccounts.Add(users.Last().Key + 1, new Dictionary<string, decimal>{
+            { "ziro", 0.00m},
+            { "tekuci", 100.00m},
+            { "prepaid", 0.00m}
+        }
+    );
     Console.Clear();
     Console.WriteLine("Korisnik uspjesno kreiran:");
     Console.WriteLine($"{name} - {lastname} - {birthDate}");
@@ -302,7 +308,79 @@ void updateUser()
     updateUser();
 }
 
-// Pregled korisnika meni
+// Pregledavanje korisnika koji imaju barem jedan racun u minusu
+void reviewUsersByAccount()
+{
+    Console.WriteLine("Korisnici koji imaju barem jedan racun u minusu:");
+    Console.WriteLine();
+
+    var count = 1;
+    while (count <= users.Count)
+    {
+        if (usersAccounts.ContainsKey(count))
+        {
+            foreach (var account in usersAccounts[count])
+            {
+                if (account.Value < 0.00m)
+                {
+                    Console.WriteLine($"{count} - {users[count].Item1} - {users[count].Item2} - {users[count].Item3}");
+                    count++;
+                }
+            }
+        }
+        count++;
+    }
+    Console.WriteLine();
+    Console.Write("Unesite 0 za povratak na pocetni meni: ");
+    var decision = Console.ReadLine() ;
+
+    switch (decision) 
+    {
+        case "0":
+            Console.Clear();
+            startingMenu();
+            return;
+        default:
+            wrongEntryy();
+            reviewUsersByAccount();
+            return;
+
+    }
+
+}
+
+// Pregledavanje korisnika koji su stariji od 30 godina
+void reviewUsersByAge() 
+{
+    Console.WriteLine("Korisnici stariji od 30 godina:");
+    Console.WriteLine();
+
+    foreach (var user in users)
+    {
+        if (DateTime.Parse(user.Value.Item3) < DateTime.Now.AddYears(-30)) 
+        {
+            Console.WriteLine($"{user.Key} - {user.Value.Item1} - {user.Value.Item2} - {user.Value.Item3}");
+        }
+    }
+
+    Console.WriteLine();
+    Console.Write("Unesite 0 za povratak na pocetni meni: ");
+    var decision = Console.ReadLine();
+
+    switch (decision)
+    {
+        case "0":
+            Console.Clear();
+            startingMenu();
+            return;
+        default:
+            wrongEntryy();
+            reviewUsersByAge();
+            return;
+    }
+}
+
+// Pregledavanje korisnika abecedno po prezimenu
 void reviewUsersAlphabetically()
 {
     Console.Clear();
@@ -310,7 +388,7 @@ void reviewUsersAlphabetically()
     while (!goBack)
     {
 
-        Console.WriteLine("0 - Pocetni meni");
+        Console.WriteLine("Korisnici poredani abecedno prema prezimenu:");
         Console.WriteLine();
 
         foreach (var user in users.OrderBy(pair => pair.Value.Item2))
@@ -319,7 +397,7 @@ void reviewUsersAlphabetically()
         }
 
         Console.WriteLine();
-        Console.Write("Odaberite radnju: ");
+        Console.Write("Unesite 0 za povratak na pocetni meni: ");
         var decision = Console.ReadLine();
 
         if (decision == "0")
@@ -339,6 +417,7 @@ void reviewUsersAlphabetically()
     return;
 }
 
+// Pregledavanje korisnika meni
 void reviewUsers()
 {
     Console.WriteLine("1 - Ispis korisnika abecedno po prezimenu");
@@ -354,6 +433,14 @@ void reviewUsers()
         case "1":
             Console.Clear();
             reviewUsersAlphabetically();
+            return;
+        case "2": 
+            Console.Clear();
+            reviewUsersByAge();
+            return;
+        case "3":
+            Console.Clear();
+            reviewUsersByAccount();
             return;
         case "0":
             Console.Clear();
@@ -408,6 +495,70 @@ void usersMenu()
     }
 }
 
+// Korisnicki racun meni
+void account(int userId) 
+{
+    Console.WriteLine("1 - Pregled racuna");
+    Console.WriteLine("0 - Pocetni meni");
+    Console.WriteLine();
+    Console.Write("Odaberite radnju: ");
+    var decision = Console.ReadLine();
+
+    switch (decision) 
+    {
+        case "1": 
+            Console.Clear();
+            // reviewAccounts funkcija
+            return;
+        case "0": 
+            Console.Clear();
+            startingMenu();
+            return;
+        default: 
+            wrongEntryy();
+            account(userId);
+            return;
+    }
+}
+
+// Logiranje u racun korisnika
+void accountLogin() 
+{
+    Console.WriteLine("Unesite ime korisnika ili unesite 0 za povratak na pocetni meni: ");
+    var name = Console.ReadLine();
+
+    if (name == "0")
+    {
+        Console.Clear();
+        startingMenu();
+        return;
+    }
+
+    Console.WriteLine();
+    Console.WriteLine("Unesite prezime korisnika: ");
+    var lastname = Console.ReadLine();
+    int userId;
+
+    
+
+    foreach (var user in users)
+    {
+        if (user.Value.Item1 == name && user.Value.Item2 == lastname) 
+        {
+            Console.Clear();
+            Console.WriteLine($"Dobrodosli {name} {lastname}!");
+            Console.WriteLine();
+            userId = user.Key;
+            account(userId);
+            return;
+        }
+    }
+
+    wrongEntryy();
+    accountLogin();
+    
+}
+
 // Pocetni meni
 void startingMenu()
 {
@@ -426,8 +577,9 @@ void startingMenu()
             usersMenu();
             return;
         case "2":
-            // funkcija account
-            break;
+            Console.Clear();
+            accountLogin();
+            return;
         case "3":
             return;
         default:
