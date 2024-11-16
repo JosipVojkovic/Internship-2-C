@@ -1,4 +1,5 @@
 ﻿using System.Data.Common;
+using System.Formats.Tar;
 using System.Globalization;
 using System.Reflection.Metadata.Ecma335;
 using System.Threading.Channels;
@@ -52,6 +53,7 @@ var usersTransactions = new Dictionary<int, (int, string, string, decimal,  stri
     {4, (1,"tekuci", "prihod", 270.00m, "standardna transakcija",  "poklon", "11.09.2024 09:10:15") },
     {5, (1, "prepaid","rashod", 20.00m, "standardna transakcija",  "sport", "12.11.2024 22:45:12")},
     {6, (1, "tekuci", "rashod",32.99m, "standardna transakcija", "hrana", "13.11.2024 11:07:44")},
+    {7, (1, "tekuci","rashod", 250.00m, "standardna transakcija",  "hrana", "24.10.2024 18:17:56") },
 };
 
 var format = "dd.MM.yyyy";
@@ -102,13 +104,16 @@ void createUser()
             return;
         }
     }
-    users.Add(users.Last().Key + 1, (name?? "", lastname?? "", birthDate?? ""));
+    
+    usersTransactions.Add(usersTransactions.Last().Key + 1, (users.Last().Key + 1, "tekuci", "prihod", 100.00m, "kreiran racun", "poklon", DateTime.Now.ToString(formatWithHoursAndMinutes)));
     usersAccounts.Add(users.Last().Key + 1, new Dictionary<string, decimal>{
             { "ziro", 0.00m},
             { "tekuci", 100.00m},
             { "prepaid", 0.00m}
         }
     );
+    users.Add(users.Last().Key + 1, (name?? "", lastname?? "", birthDate?? ""));
+
     Console.Clear();
     Console.WriteLine("Korisnik uspjesno kreiran:");
     Console.WriteLine($"{name} - {lastname} - {birthDate}");
@@ -178,9 +183,18 @@ void deleteById()
 
     foreach (var user in users)
     {
-        if (user.Key == int.Parse(id))
+        if (id != null && user.Key == int.Parse(id))
         {
             users.Remove(int.Parse(id));
+            foreach(var transaction in usersTransactions)
+            {
+                if(transaction.Value.Item1 == int.Parse(id))
+                {
+                    usersTransactions.Remove(transaction.Key);
+                }
+                
+            }
+
             Console.Clear();
             Console.WriteLine($"Korisnik id-{id} uspjesno obrisan.");
             Console.WriteLine();
@@ -229,6 +243,14 @@ void deleteByName()
         if (user.Value.Item1 == name && user.Value.Item2 == lastname)
         {
             users.Remove(user.Key);
+            foreach (var transaction in usersTransactions)
+            {
+                if (transaction.Value.Item1 == user.Key)
+                {
+                    usersTransactions.Remove(transaction.Key);
+                }
+
+            }
             Console.Clear();
             Console.WriteLine($"Korisnik {name} {lastname} uspjesno obrisan.");
             Console.WriteLine();
@@ -274,7 +296,7 @@ void updateUser()
 
     foreach (var user in users)
     {
-        if (user.Key == int.Parse(id))
+        if (id != null && user.Key == int.Parse(id))
         {
             Console.WriteLine("Trenutni podatci korisnika: ");
             Console.WriteLine($"{user.Key} - {user.Value.Item1} - {user.Value.Item2} - {user.Value.Item3}");
@@ -1428,6 +1450,421 @@ void allTransactionsByCategory(int userId, string selectedAccount)
 
 }
 
+void accountBalance(int userId, string selectedAccount)
+{
+    decimal totalIncome = usersTransactions
+            .Where(user => user.Value.Item1 == userId && user.Value.Item2 == selectedAccount && user.Value.Item3 == "prihod")
+            .Sum(user => user.Value.Item4);
+
+    decimal totalExpense = usersTransactions
+            .Where(user => user.Value.Item1 == userId && user.Value.Item2 == selectedAccount && user.Value.Item3 == "rashod")
+            .Sum(user => user.Value.Item4);
+
+    decimal result = totalIncome - totalExpense;
+    Console.WriteLine($"Trenutno stanje za {selectedAccount} racun: {result}eur");
+
+    if(result < 0)
+    {
+        Console.WriteLine();
+        Console.WriteLine("UPOZORENJE! Vas racun je u minusu.");
+    }
+
+    Console.WriteLine();    
+    Console.Write("Unesite 0 za povratak: ");
+    var decision = Console.ReadLine();
+
+    switch (decision)
+    {
+        case "0":
+            Console.Clear();
+            transactionsMenu(userId, selectedAccount);
+            return;
+        default:
+            wrongEntryy();
+            accountBalance(userId, selectedAccount);
+            return;
+    }
+}
+
+void totalTransactions(int userId, string selectedAccount)
+{
+    int count = usersTransactions
+            .Count(user => user.Value.Item1 == userId && user.Value.Item2 == selectedAccount);
+
+    Console.WriteLine($"Ukupan broj transakcija za {selectedAccount} racun: {count}");
+    Console.WriteLine();
+    Console.Write("Unesite 0 za povratak: ");
+    var decision = Console.ReadLine();
+
+    switch (decision)
+    {
+        case "0":
+            Console.Clear();
+            transactionsMenu(userId, selectedAccount);
+            return;
+        default:
+            wrongEntryy();
+            totalTransactions(userId, selectedAccount);
+            return;
+    }
+}
+
+void incomeExpenseAmount(int userId, string selectedAccount)
+{
+    Console.Write("Unesite godinu za koju zelite vidjeti ukupan iznos prihoda i rashoda: ");
+    var yearEntry = Console.ReadLine();
+    Console.WriteLine();
+    Console.Write("Unesite mjesec za koji zelite vidjeti ukupan iznos prihoda i rashoda: ");
+    var monthEntry = Console.ReadLine();
+
+    if(!int.TryParse(yearEntry, out _) || !int.TryParse(monthEntry, out _))
+    {
+        wrongEntryy();
+        incomeExpenseAmount(userId, selectedAccount);
+        return;
+    }
+    else if(int.Parse(monthEntry) > 12)
+    {
+        Console.Clear();
+        Console.WriteLine("Pogresan unos, mjesec ne moze biti veci od 12. Pokusajte ponovno.");
+        Console.WriteLine();
+        incomeExpenseAmount(userId, selectedAccount);
+        return;
+    }
+    else if(int.Parse(monthEntry) < 1 || int.Parse(yearEntry) < 1)
+    {
+        Console.Clear();
+        Console.WriteLine("Pogresan unos, godina ili mjesec ne moze biti negativan broj. Pokusajte ponovno.");
+        Console.WriteLine();
+        incomeExpenseAmount(userId, selectedAccount);
+        return;
+    }
+
+    decimal totalIncome = usersTransactions
+            .Where(
+                user => user.Value.Item1 == userId && 
+                user.Value.Item2 == selectedAccount &&
+                user.Value.Item3 == "prihod" &&              
+                DateTime.TryParseExact(
+                    user.Value.Item7, formatWithHoursAndMinutes, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date) &&
+                date.Month == int.Parse(monthEntry) &&             
+                date.Year == int.Parse(yearEntry)                    
+            )
+            .Sum(user => user.Value.Item4);
+
+    decimal totalExpense = usersTransactions
+            .Where(
+                user => user.Value.Item1 == userId &&
+                user.Value.Item2 == selectedAccount &&
+                user.Value.Item3 == "rashod" &&
+                DateTime.TryParseExact(
+                    user.Value.Item7, formatWithHoursAndMinutes, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date) &&
+                date.Month == int.Parse(monthEntry) &&
+                date.Year == int.Parse(yearEntry)
+            )
+            .Sum(user => user.Value.Item4);
+
+    Console.Clear();
+
+    var decision = "";
+
+    while(decision != "0")
+    {
+        Console.WriteLine($"Ukupan iznos prihoda za {monthEntry}. mjesec i {yearEntry}. godinu: {totalIncome}");
+        Console.WriteLine($"Ukupan iznos rashoda za {monthEntry}. mjesec i {yearEntry}. godinu: {totalExpense}");
+        Console.WriteLine();
+        Console.Write("Unesite 0 za povratak: ");
+        decision = Console.ReadLine();
+
+        switch (decision)
+        {
+            case "0":
+                Console.Clear();
+                transactionsMenu(userId, selectedAccount);
+                return;
+            default:
+                wrongEntryy();
+                break;
+        }
+    }
+    
+}
+
+void expensePercentage(int userId, string selectedAccount)
+{
+    var decision = "";
+
+    while (decision != "1" && decision != "2" && decision != "3")
+    {
+        Console.WriteLine("1 - Hrana");
+        Console.WriteLine("2 - Prijevoz");
+        Console.WriteLine("3 - Sport");
+        Console.WriteLine();
+        Console.Write("Odaberite kategoriju za koju zelite vidjeti postotak udjela rashoda: ");
+        decision = Console.ReadLine();
+
+        if (decision != "1" && decision != "2" && decision != "3")
+        {
+            wrongEntryy();
+        }
+    }
+
+    switch (decision)
+    {
+        case "1":
+            decision = "hrana";
+            break;
+        case "2":
+            decision = "prijevoz";
+            break;
+        case "3":
+            decision = "sport";
+            break;
+    }
+
+    decimal totalExpenses = usersTransactions
+            .Where(user => user.Value.Item1 == userId && user.Value.Item2 == selectedAccount && user.Value.Item3 == "rashod")
+            .Sum(user => user.Value.Item4);
+
+    decimal categoryExpenses = usersTransactions
+        .Where(user => user.Value.Item1 == userId && user.Value.Item2 == selectedAccount && user.Value.Item3 == "rashod" && user.Value.Item6 == decision)
+        .Sum(user => user.Value.Item4);
+
+    var decision1 = "";
+
+    while (decision1 != "0")
+    {
+        if (totalExpenses > 0)
+        {
+            decimal percentage = (categoryExpenses / totalExpenses) * 100;
+            Console.Clear();
+            Console.WriteLine($"Postotak udjela rashoda za kategoriju {decision}: {percentage:F2}%");
+        }
+        else
+        {
+            Console.Clear();
+            Console.WriteLine("Nema rashoda za izračun.");
+        }
+
+        Console.WriteLine();
+        Console.Write("Unesite 0 za povratak: ");
+        decision1 = Console.ReadLine();
+
+        switch (decision1)
+        {
+            case "0":
+                Console.Clear();
+                transactionsMenu(userId, selectedAccount);
+                return;
+            default:
+                wrongEntryy();
+                break;
+        }
+    }
+}
+
+void transactionAveragePerDate(int userId, string selectedAccount)
+{
+    Console.Write("Unesite godinu za koju zelite vidjeti prosjecan iznos transakcije: ");
+    var yearEntry = Console.ReadLine();
+    Console.WriteLine();
+    Console.Write("Unesite mjesec za koji zelite vidjeti prosjecan iznos transakcije: ");
+    var monthEntry = Console.ReadLine();
+
+    if (!int.TryParse(yearEntry, out _) || !int.TryParse(monthEntry, out _))
+    {
+        wrongEntryy();
+        transactionAveragePerDate(userId, selectedAccount);
+        return;
+    }
+    else if (int.Parse(monthEntry) > 12)
+    {
+        Console.Clear();
+        Console.WriteLine("Pogresan unos, mjesec ne moze biti veci od 12. Pokusajte ponovno.");
+        Console.WriteLine();
+        transactionAveragePerDate(userId, selectedAccount);
+        return;
+    }
+    else if (int.Parse(monthEntry) < 1 || int.Parse(yearEntry) < 1)
+    {
+        Console.Clear();
+        Console.WriteLine("Pogresan unos, godina ili mjesec ne moze biti negativan broj. Pokusajte ponovno.");
+        Console.WriteLine();
+        transactionAveragePerDate(userId, selectedAccount);
+        return;
+    }
+
+    decimal averageAmount = usersTransactions
+            .Where(
+                user => user.Value.Item1 == userId &&
+                user.Value.Item2 == selectedAccount &&
+                DateTime.TryParseExact(
+                    user.Value.Item7, formatWithHoursAndMinutes, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date) &&
+                date.Month == int.Parse(monthEntry) &&
+                date.Year == int.Parse(yearEntry)
+            )
+            .Average(user => user.Value.Item4);
+
+    Console.Clear();
+
+    var decision = "";
+
+    while (decision != "0")
+    {
+        Console.WriteLine($"Prosjecan iznos transakcije za {monthEntry}. mjesec i {yearEntry}. godinu: {averageAmount}");
+        Console.WriteLine();
+        Console.Write("Unesite 0 za povratak: ");
+        decision = Console.ReadLine();
+
+        switch (decision)
+        {
+            case "0":
+                Console.Clear();
+                transactionsMenu(userId, selectedAccount);
+                return;
+            default:
+                wrongEntryy();
+                break;
+        }
+    }
+
+}
+
+void transactionAveragePerCategory(int userId, string selectedAccount)
+{
+    var decision = "";
+
+    while (decision != "1" && decision != "2" && decision != "3" && decision != "4" && decision != "5" && decision != "6")
+    {
+        Console.WriteLine("1 - Placa");
+        Console.WriteLine("2 - Honorar");
+        Console.WriteLine("3 - Poklon");
+        Console.WriteLine("4 - Hrana");
+        Console.WriteLine("5 - Prijevoz");
+        Console.WriteLine("6 - Sport");
+        Console.WriteLine();
+        Console.Write("Odaberite kategoriju za koju zelite vidjeti transakcije: ");
+        decision = Console.ReadLine();
+
+        if (decision != "1" && decision != "2" && decision != "3" && decision != "4" && decision != "5" && decision != "6")
+        {
+            wrongEntryy();
+        }
+    }
+
+    switch (decision)
+    {
+        case "1":
+            decision = "placa";
+            break;
+        case "2":
+            decision = "honorar";
+            break;
+        case "3":
+            decision = "poklon";
+            break;
+        case "4":
+            decision = "hrana";
+            break;
+        case "5":
+            decision = "prijevoz";
+            break;
+        case "6":
+            decision = "sport";
+            break;
+    }
+
+    decimal averageAmount = usersTransactions
+            .Where(
+                user => user.Value.Item1 == userId &&
+                user.Value.Item2 == selectedAccount &&
+                user.Value.Item6 == decision
+            )
+            .Average(user => user.Value.Item4);
+
+    Console.Clear();
+
+    var decision1 = "";
+
+    while (decision1 != "0")
+    {
+        Console.WriteLine($"Prosjecan iznos transakcije za kategoriju {decision}: {averageAmount}");
+        Console.WriteLine();
+        Console.Write("Unesite 0 za povratak: ");
+        decision = Console.ReadLine();
+
+        switch (decision1)
+        {
+            case "0":
+                Console.Clear();
+                transactionsMenu(userId, selectedAccount);
+                return;
+            default:
+                wrongEntryy();
+                break;
+        }
+    }
+
+}
+
+void financialReport(int userId, string selectedAccount)
+{
+    Console.WriteLine($"{users[userId].Item1} {users[userId].Item2} => {selectedAccount} => financijsko izvjesce");
+    Console.WriteLine();
+    Console.WriteLine("1 - Stanje racuna");
+    Console.WriteLine("2 - Ukupni broj transakcija");
+    Console.WriteLine("3 - Iznos prihoda i rashoda za odredeni mjesec i godinu");
+    Console.WriteLine("4 - Postotak udjela rashoda za odredenu kategoriju");
+    Console.WriteLine("5 - Prosjecni iznos transakcije za odredeni mjesec i godinu");
+    Console.WriteLine("6 - Prosjecni iznos transakcije za odabranu kategoriju");
+    Console.WriteLine("7 - Natrag");
+    Console.WriteLine("0 - Pocetni meni");
+
+    Console.WriteLine();
+    Console.Write("Odaberite radnju: ");
+    var decision = Console.ReadLine();
+
+    switch (decision)
+    {
+        case "1":
+            Console.Clear();
+            accountBalance(userId, selectedAccount);
+            return;
+        case "2":
+            Console.Clear();
+            totalTransactions(userId, selectedAccount);
+            return;
+        case "3":
+            Console.Clear();
+            incomeExpenseAmount(userId, selectedAccount);
+            return;
+        case "4":
+            Console.Clear();
+            expensePercentage(userId, selectedAccount);
+            return;
+        case "5":
+            Console.Clear();
+            transactionAveragePerDate(userId, selectedAccount);
+            return;
+        case "6":
+            Console.Clear();
+            transactionAveragePerCategory(userId, selectedAccount);
+            return;
+        case "7":
+            Console.Clear();
+            transactionsMenu(userId, selectedAccount);
+            return;
+        case "0":
+            Console.Clear();
+            startingMenu();
+            return;
+        default:
+            wrongEntryy();
+            financialReport(userId, selectedAccount);
+            return;
+    }
+}
+
 void reviewTransactions(int userId, string selectedAccount) 
 {
     Console.WriteLine($"{users[userId].Item1} {users[userId].Item2} => {selectedAccount} => pregled transakcija");
@@ -1441,8 +1878,7 @@ void reviewTransactions(int userId, string selectedAccount)
     Console.WriteLine("7 - Svi prihodi");
     Console.WriteLine("8 - Svi rashodi");
     Console.WriteLine("9 - Sve transakcije za odabranu kategoriju");
-    Console.WriteLine("10 - Sve transakcije za odabrani tip i kategoriju");
-    Console.WriteLine("11 - Natrag");
+    Console.WriteLine("10 - Natrag");
     Console.WriteLine("0 - Pocetni meni");
 
     Console.WriteLine();
@@ -1489,12 +1925,8 @@ void reviewTransactions(int userId, string selectedAccount)
             return;
         case "10":
             Console.Clear();
-            // allTransactionsByTypeAndCategory
-            return;
-        case "11":
-            Console.Clear();
             transactionsMenu(userId, selectedAccount);
-            return;
+            return;            
         case "0":
             Console.Clear();
             startingMenu();
@@ -1542,7 +1974,7 @@ void transactionsMenu(int userId, string selectedAccount)
             return;
         case "5":
             Console.Clear();
-            // funkcija financialReport
+            financialReport(userId, selectedAccount);
             return;
         case "6":
             Console.Clear();
